@@ -4,6 +4,7 @@ import './App.css';
 import Web3 from 'web3';
 import Navbar from './Navbar';
 import SocialNetwork from '../abis/SocialNetwork.json';
+import Main from './Main';
 
 class App extends Component {
 
@@ -16,6 +17,8 @@ class App extends Component {
       posts: [],
       loading: true
     }
+    this.createPost = this.createPost.bind(this);
+    this.tipPost = this.tipPost.bind(this);
   }
 
   async loadWeb3() {
@@ -39,7 +42,7 @@ class App extends Component {
     // Network ID
     const networkId = await web3.eth.net.getId()
     const networkData = SocialNetwork.networks[networkId]
-    if(networkData) {
+    if (networkData) {
       const socialNetwork = web3.eth.Contract(SocialNetwork.abi, networkData.address)
       this.setState({ socialNetwork })
       const postCount = await socialNetwork.methods.postCount().call()
@@ -52,10 +55,26 @@ class App extends Component {
         })
       }
       // Set loading to false
-      this.setState({ loading: false})
+      this.setState({ loading: false })
     } else {
       window.alert('SocialNetwork contract not deployed to detected network.')
     }
+  }
+
+  createPost(content) {
+    this.setState({ loading: true })
+    this.state.socialNetwork.methods.createPost(content).send({ from: this.state.account })
+      .once('receipt', (receipt) => {
+        this.setState({ loading: false })
+      })
+  };
+
+  tipPost(id, tipAmount) {
+    this.setState({ loading: true })
+    this.state.socialNetwork.methods.tipPost(id).send({ from: this.state.account, value: tipAmount })
+      .once('receipt', (receipt) => {
+        this.setState({ loading: false })
+      })
   }
 
   async componentWillMount() {
@@ -67,9 +86,9 @@ class App extends Component {
     return (
       <div>
         <Navbar account={this.state.account} />
-        { this.state.loading
+        {this.state.loading
           ? <div id="loader" className="text-center mt-5"><p>Loading...</p></div>
-          :<Main
+          : <Main
             posts={this.state.posts}
             createPost={this.createPost}
             tipPost={this.tipPost}
